@@ -80,7 +80,7 @@ export const topUp = async (req, res) => {
 
     await db.execute(
       "INSERT INTO transactions (user_id, service_code, transaction_type, total_amount, invoice_number) VALUES (?, ?, ?, ?, ?)",
-      [users[0].id, '', "TOPUP", top_up_amount, invoiceNumber]
+      [users[0].id, "", "TOPUP", top_up_amount, invoiceNumber]
     );
     await db.commit();
     return res.json(
@@ -201,24 +201,28 @@ export const getTransactions = async (req, res) => {
       ORDER BY t.created_on DESC
     `;
 
+    const safeLimit = limit ? parseInt(limit) : null;
+    const safeOffset = parseInt(offset) || 0;
+
     const params = [user[0].id];
 
-    if (limit) {
+    if (safeLimit) {
+      if (isNaN(safeLimit)) {
+        return res.status(400).json(errorResponse(102, "Limit harus angka"));
+      }
       query += " LIMIT ? OFFSET ?";
-      params.push(parseInt(limit), parseInt(offset));
+      params.push(safeLimit, safeOffset);
     }
 
     const [transactions] = await db.execute(query, params);
 
-    return res
-      .status(200)
-      .json(
-        successResponse("Get Transactions Berhasil", {
-          offset,
-          limit,
-          records: transactions,
-        })
-      );
+    return res.status(200).json(
+      successResponse("Get Transactions Berhasil", {
+        offset: safeOffset,
+        limit: safeLimit,
+        records: transactions,
+      })
+    );
   } catch (error) {
     console.error("getTransactions error:", error);
     return res.status(500).json(errorResponse(500, "Internal Server Error"));
