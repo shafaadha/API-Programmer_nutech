@@ -176,18 +176,27 @@ export const createTransaction = async (req, res) => {
 export const getTransactions = async (req, res) => {
   const userEmail = req.user.email;
   const { limit, offset = 0 } = req.query;
-  try {
-    const [user] = await db.execute("SELECT id FROM users WHERE email = ?", [
-      userEmail,
-    ]);
 
-    if (user.length === 0) {
+  try {
+    // Ambil user ID berdasarkan email dari token
+    const [userRows] = await db.execute("SELECT id FROM users WHERE email = ?", [userEmail]);
+
+    if (userRows.length === 0) {
       return res.status(404).json(errorResponse(102, "User tidak ditemukan"));
     }
 
-    const safeLimit = limit !== undefined ? parseInt(limit) : null;
-    const safeOffset = parseInt(offset) || 0;
+    const userId = userRows[0].id;
 
+    // Validasi dan sanitasi limit & offset
+    const parsedLimit = parseInt(limit, 10);
+    const parsedOffset = parseInt(offset, 10);
+
+    const safeLimit =
+      Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : null;
+    const safeOffset =
+      Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
+
+    // Query dasar
     let query = `
       SELECT 
         t.invoice_number,
@@ -204,13 +213,15 @@ export const getTransactions = async (req, res) => {
       ORDER BY t.created_on DESC
     `;
 
-    const params = [user[0].id];
+    const params = [userId];
 
-    if (safeLimit !== null && !isNaN(safeLimit)) {
+    // Tambahkan LIMIT & OFFSET jika valid
+    if (safeLimit !== null) {
       query += " LIMIT ? OFFSET ?";
       params.push(safeLimit, safeOffset);
     }
 
+    // Eksekusi query
     const [transactions] = await db.execute(query, params);
 
     return res.status(200).json(
