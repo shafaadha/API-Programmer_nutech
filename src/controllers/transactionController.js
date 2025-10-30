@@ -20,12 +20,18 @@ export const getBalance = async (req, res) => {
     );
 
     if (wallets.length === 0) {
-      return res.status(404).json(errorResponse(404, "User not found"));
+      return res.status(404).json(errorResponse(404, "Wallet tidak ditemukan"));
     }
+
+    console.log("UserId:", userId, "Balance:", wallets[0].balance);
+
     return res
       .status(200)
-      .json(successResponse("Get Balance Berhasil", wallets[0]));
+      .json(
+        successResponse("Get Balance Berhasil", { balance: wallets[0].balance })
+      );
   } catch (error) {
+    console.error("getBalance error:", error);
     return res.status(500).json(errorResponse(500, "Internal Server Error"));
   }
 };
@@ -68,19 +74,21 @@ export const topUp = async (req, res) => {
       users[0].id,
     ]);
 
-    const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const invoiceNumber = `INV-${Date.now()}-${Math.floor(
+      Math.random() * 1000
+    )}`;
 
-  await db.execute("INSERT INTO transactions (user_id, transaction_type, total_amount, invoice_number) VALUES (?, ?, ?, ?)", [
-    users[0].id,
-    "TOPUP",
-    top_up_amount,
-    invoiceNumber,
-  ]);
+    await db.execute(
+      "INSERT INTO transactions (user_id, transaction_type, total_amount, invoice_number) VALUES (?, ?, ?, ?)",
+      [users[0].id, "TOPUP", top_up_amount, invoiceNumber]
+    );
     await db.commit();
     return res.json(
       successResponse("Top up Balance berhasil", { balance: newBalance })
     );
   } catch (error) {
+    await db.rollback();
+    console.error("Error in topUp:", error);
     return res.status(500).json(errorResponse(500, "Internal Server Error"));
   }
 };
@@ -204,7 +212,13 @@ export const getTransactions = async (req, res) => {
 
     return res
       .status(200)
-      .json(successResponse("Get Transactions Berhasil", { offset, limit, records: transactions }));
+      .json(
+        successResponse("Get Transactions Berhasil", {
+          offset,
+          limit,
+          records: transactions,
+        })
+      );
   } catch (error) {
     return res.status(500).json(errorResponse(500, "Internal Server Error"));
   }
