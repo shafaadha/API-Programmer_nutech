@@ -185,6 +185,9 @@ export const getTransactions = async (req, res) => {
       return res.status(404).json(errorResponse(102, "User tidak ditemukan"));
     }
 
+    const safeLimit = limit !== undefined ? parseInt(limit) : null;
+    const safeOffset = parseInt(offset) || 0;
+
     let query = `
       SELECT 
         t.invoice_number,
@@ -201,15 +204,9 @@ export const getTransactions = async (req, res) => {
       ORDER BY t.created_on DESC
     `;
 
-    const safeLimit = limit ? parseInt(limit) : null;
-    const safeOffset = parseInt(offset) || 0;
-
     const params = [user[0].id];
 
-    if (safeLimit) {
-      if (isNaN(safeLimit)) {
-        return res.status(400).json(errorResponse(102, "Limit harus angka"));
-      }
+    if (safeLimit !== null && !isNaN(safeLimit)) {
       query += " LIMIT ? OFFSET ?";
       params.push(safeLimit, safeOffset);
     }
