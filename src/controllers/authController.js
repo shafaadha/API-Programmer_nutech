@@ -47,10 +47,12 @@ export const register = async (req, res) => {
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const profileImage = 'default-profile.png';
+
     //inser new user
     const [newUser] = await db.execute(
-      "INSERT INTO users (email, first_name, last_name, password) VALUES (?, ?, ?, ?)",
-      [email, first_name, last_name, hashedPassword]
+      "INSERT INTO users (email, first_name, last_name, password, profile_image) VALUES (?, ?, ?, ?, ?)",
+      [email, first_name, last_name, hashedPassword, profileImage]
     );
 
     const userId = newUser.insertId;
