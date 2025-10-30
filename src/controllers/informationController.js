@@ -6,6 +6,7 @@ export const getBanner = async(req, res) => {
         const [banners] = await db.execute("SELECT banner_name, banner_image, description FROM banners");
        return res.status(200).json(successResponse("Sukses", banners));
     } catch (error) {
+        console.error('Error GET /banner:', error);
         return res.status(500).json(errorResponse(500, "Internal Server Error"));
     }
 };
