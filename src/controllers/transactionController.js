@@ -191,7 +191,7 @@ export const getTransactions = async (req, res) => {
         t.transaction_type,
         CASE 
           WHEN t.transaction_type = 'TOPUP' THEN 'Top Up balance'
-          ELSE s.service_name
+          ELSE IFNULL(s.service_name, 'Unknown service')
         END AS description,
         t.total_amount,
         t.created_on
@@ -220,6 +220,7 @@ export const getTransactions = async (req, res) => {
         })
       );
   } catch (error) {
+    console.error("getTransactions error:", error);
     return res.status(500).json(errorResponse(500, "Internal Server Error"));
   }
 };
