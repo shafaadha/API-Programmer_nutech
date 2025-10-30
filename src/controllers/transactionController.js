@@ -79,8 +79,8 @@ export const topUp = async (req, res) => {
     )}`;
 
     await db.execute(
-      "INSERT INTO transactions (user_id, transaction_type, total_amount, invoice_number) VALUES (?, ?, ?, ?)",
-      [users[0].id, "TOPUP", top_up_amount, invoiceNumber]
+      "INSERT INTO transactions (user_id, service_code, transaction_type, total_amount, invoice_number) VALUES (?, ?, ?, ?, ?)",
+      [users[0].id, '', "TOPUP", top_up_amount, invoiceNumber]
     );
     await db.commit();
     return res.json(
