@@ -213,7 +213,6 @@ export const getTransactions = async (req, res) => {
   const { limit, offset = 0 } = req.query;
 
   try {
-    // Ambil user ID berdasarkan email dari token
     const [userRows] = await db.execute(
       "SELECT id FROM users WHERE email = ?",
       [userEmail]
@@ -225,7 +224,6 @@ export const getTransactions = async (req, res) => {
 
     const userId = userRows[0].id;
 
-    // Validasi dan sanitasi limit & offset
     const parsedLimit = parseInt(limit, 10);
     const parsedOffset = parseInt(offset, 10);
 
@@ -234,7 +232,6 @@ export const getTransactions = async (req, res) => {
     const safeOffset =
       Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
 
-    // Query dasar
     let query = `
       SELECT 
         t.invoice_number,
@@ -253,19 +250,16 @@ export const getTransactions = async (req, res) => {
 
     const params = [userId];
 
-    // Tambahkan LIMIT & OFFSET jika valid
     if (safeLimit !== null) {
-      query += " LIMIT ? OFFSET ?";
-      params.push(safeLimit, safeOffset);
+      query += ` LIMIT ${safeLimit} OFFSET ${safeOffset}`;
     }
 
-    // Eksekusi query
     const [transactions] = await db.execute(query, params);
 
     return res.status(200).json(
       successResponse("Get Transactions Berhasil", {
         offset: safeOffset,
-        limit: safeLimit,
+        limit: safeLimit ?? "all",
         records: transactions,
       })
     );
