@@ -227,10 +227,20 @@ export const getTransactions = async (req, res) => {
     const parsedLimit = parseInt(limit, 10);
     const parsedOffset = parseInt(offset, 10);
 
-    const safeLimit =
-      Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : null;
+    const hasLimit = !isNaN(parsedLimit);
+    const safeLimit = hasLimit ? parsedLimit : null;
     const safeOffset =
       Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
+
+    if (hasLimit && safeLimit === 0) {
+      return res.status(200).json(
+        successResponse("Get Transactions Berhasil", {
+          offset: safeOffset,
+          limit: safeLimit,
+          records: [],
+        })
+      );
+    }
 
     let query = `
       SELECT 
@@ -250,7 +260,7 @@ export const getTransactions = async (req, res) => {
 
     const params = [userId];
 
-    if (safeLimit !== null) {
+    if (hasLimit && safeLimit > 0) {
       query += ` LIMIT ${safeLimit} OFFSET ${safeOffset}`;
     }
 
@@ -259,7 +269,7 @@ export const getTransactions = async (req, res) => {
     return res.status(200).json(
       successResponse("Get Transactions Berhasil", {
         offset: safeOffset,
-        limit: safeLimit ?? "all",
+        limit: hasLimit ? safeLimit : "all",
         records: transactions,
       })
     );
