@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 29, 2025 at 05:48 PM
+-- Generation Time: Oct 31, 2025 at 01:36 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -87,12 +87,19 @@ INSERT INTO `services` (`id`, `service_code`, `service_name`, `service_icon`, `s
 CREATE TABLE `transactions` (
   `id` int(11) NOT NULL,
   `user_id` bigint(20) NOT NULL,
-  `service_code` varchar(50) NOT NULL,
+  `service_code` varchar(50) DEFAULT NULL,
   `transaction_type` enum('PAYMENT','TOPUP') NOT NULL DEFAULT 'PAYMENT',
   `total_amount` bigint(20) NOT NULL,
   `invoice_number` varchar(50) NOT NULL,
   `created_on` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `transactions`
+--
+
+INSERT INTO `transactions` (`id`, `user_id`, `service_code`, `transaction_type`, `total_amount`, `invoice_number`, `created_on`) VALUES
+(7, 9, '', 'TOPUP', 1000000, 'INV-1761838332029-514', '2025-10-30 22:32:12');
 
 -- --------------------------------------------------------
 
@@ -106,8 +113,15 @@ CREATE TABLE `users` (
   `first_name` varchar(255) NOT NULL,
   `last_name` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `profile_image` varchar(255) NOT NULL
+  `profile_image` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `email`, `first_name`, `last_name`, `password`, `profile_image`) VALUES
+(9, 'user@nutech-integrasi.com', 'User', 'Nutech', '$2b$10$riq67J0OA48uXDeO2Na3p.TH4UZoD5qL3i4YwkcHoCFtEBdsRC75q', 'default-profile.png');
 
 -- --------------------------------------------------------
 
@@ -121,6 +135,13 @@ CREATE TABLE `wallets` (
   `balance` bigint(20) NOT NULL,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `wallets`
+--
+
+INSERT INTO `wallets` (`id`, `user_id`, `balance`, `updated_at`) VALUES
+(5, 9, 1000000, '2025-10-30 15:32:12');
 
 --
 -- Indexes for dumped tables
@@ -179,19 +200,19 @@ ALTER TABLE `services`
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `wallets`
 --
 ALTER TABLE `wallets`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
