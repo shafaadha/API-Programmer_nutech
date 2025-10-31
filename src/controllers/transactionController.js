@@ -37,61 +37,75 @@ export const getBalance = async (req, res) => {
 };
 
 export const topUp = async (req, res) => {
-  try {
-    const email = req.user.email;
-    const { top_up_amount } = req.body;
+  const email = req.user.email;
+  const { top_up_amount } = req.body;
 
-    if (
-      !top_up_amount ||
-      typeof top_up_amount !== "number" ||
-      top_up_amount <= 0
-    ) {
-      return res
-        .status(400)
-        .json(
-          errorResponse(
-            102,
-            "Parameter amount hanya boleh angka dan tidak boleh lebih kecil dari 0"
-          )
-        );
+  if (!top_up_amount || typeof top_up_amount !== "number" || top_up_amount <= 0) {
+    return res.status(400).json(
+      errorResponse(
+        102,
+        "Parameter amount hanya boleh angka dan tidak boleh lebih kecil dari 0"
+      )
+    );
+  }
+
+  const connection = await db.getConnection(); 
+  try {
+    await connection.beginTransaction();
+
+    const [users] = await connection.execute(
+      "SELECT id FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (users.length === 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json(errorResponse(404, "User tidak ditemukan"));
     }
 
-    await db.beginTransaction();
-
-    const [users] = await db.execute("SELECT id FROM users WHERE email = ?", [
-      email,
-    ]);
-
-    const [wallets] = await db.execute(
+    const [wallets] = await connection.execute(
       "SELECT balance FROM wallets WHERE user_id = ?",
       [users[0].id]
     );
 
+    if (wallets.length === 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json(errorResponse(404, "Wallet tidak ditemukan"));
+    }
+
     const newBalance = wallets[0].balance + top_up_amount;
 
-    await db.execute("UPDATE wallets SET balance = ? WHERE user_id = ?", [
-      newBalance,
-      users[0].id,
-    ]);
+    await connection.execute(
+      "UPDATE wallets SET balance = ? WHERE user_id = ?",
+      [newBalance, users[0].id]
+    );
 
     const invoiceNumber = `INV-${Date.now()}-${Math.floor(
       Math.random() * 1000
     )}`;
 
-    await db.execute(
+
+    await connection.execute(
       "INSERT INTO transactions (user_id, service_code, transaction_type, total_amount, invoice_number) VALUES (?, ?, ?, ?, ?)",
       [users[0].id, null, "TOPUP", top_up_amount, invoiceNumber]
     );
-    await db.commit();
+
+    await connection.commit();
+    connection.release();
+
     return res.json(
       successResponse("Top up Balance berhasil", { balance: newBalance })
     );
   } catch (error) {
-    await db.rollback();
+    await connection.rollback();
+    connection.release();
     console.error("Error in topUp:", error);
     return res.status(500).json(errorResponse(500, "Internal Server Error"));
   }
 };
+
 
 export const createTransaction = async (req, res) => {
   const { service_code } = req.body;
