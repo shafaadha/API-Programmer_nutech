@@ -80,7 +80,7 @@ export const topUp = async (req, res) => {
 
     await db.execute(
       "INSERT INTO transactions (user_id, service_code, transaction_type, total_amount, invoice_number) VALUES (?, ?, ?, ?, ?)",
-      [users[0].id, "", "TOPUP", top_up_amount, invoiceNumber]
+      [users[0].id, null, "TOPUP", top_up_amount, invoiceNumber]
     );
     await db.commit();
     return res.json(
@@ -92,9 +92,6 @@ export const topUp = async (req, res) => {
     return res.status(500).json(errorResponse(500, "Internal Server Error"));
   }
 };
-
-import db from "../config/db.js";
-import { successResponse, errorResponse } from "../utils/responseFormatter.js";
 
 export const createTransaction = async (req, res) => {
   const { service_code } = req.body;
