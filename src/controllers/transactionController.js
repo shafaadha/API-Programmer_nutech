@@ -93,58 +93,78 @@ export const topUp = async (req, res) => {
   }
 };
 
+import db from "../config/db.js";
+import { successResponse, errorResponse } from "../utils/responseFormatter.js";
+
 export const createTransaction = async (req, res) => {
   const { service_code } = req.body;
   const userEmail = req.user.email;
+
   if (!service_code) {
     return res
       .status(400)
       .json(errorResponse(102, "Parameter service_code harus diisi"));
   }
 
+  const connection = await db.getConnection();
+
   try {
-    const [user] = await db.execute("SELECT id FROM users WHERE email = ?", [
-      userEmail,
-    ]);
+    await connection.beginTransaction();
+
+
+    const [user] = await connection.execute(
+      "SELECT id FROM users WHERE email = ?",
+      [userEmail]
+    );
     if (user.length === 0) {
+      await connection.rollback();
+      connection.release();
       return res.status(404).json(errorResponse(102, "User tidak ditemukan"));
     }
 
-    const [balance] = await db.execute(
+
+    const [balance] = await connection.execute(
       "SELECT balance FROM wallets WHERE user_id = ?",
       [user[0].id]
     );
-
     if (balance.length === 0) {
+      await connection.rollback();
+      connection.release();
       return res.status(404).json(errorResponse(102, "Wallet tidak ditemukan"));
     }
-    const [service] = await db.execute(
+
+
+    const [service] = await connection.execute(
       "SELECT * FROM services WHERE service_code = ?",
       [service_code]
     );
-
     if (service.length === 0) {
+      await connection.rollback();
+      connection.release();
       return res
         .status(404)
         .json(errorResponse(102, "Service atau Layanan tidak ditemukan"));
     }
 
+
     if (balance[0].balance < service[0].service_tariff) {
+      await connection.rollback();
+      connection.release();
       return res.status(400).json(errorResponse(102, "Saldo tidak mencukupi"));
     }
-    await db.beginTransaction();
+
 
     const newBalance = balance[0].balance - service[0].service_tariff;
-    await db.execute("UPDATE wallets SET balance = ? WHERE user_id = ?", [
-      newBalance,
-      user[0].id,
-    ]);
+    await connection.execute(
+      "UPDATE wallets SET balance = ? WHERE user_id = ?",
+      [newBalance, user[0].id]
+    );
 
     const invoiceNumber = `INV-${Date.now()}-${Math.floor(
       Math.random() * 1000
     )}`;
 
-    await db.execute(
+    await connection.execute(
       "INSERT INTO transactions (user_id, service_code, transaction_type, total_amount, invoice_number) VALUES (?, ?, ?, ?, ?)",
       [
         user[0].id,
@@ -155,7 +175,9 @@ export const createTransaction = async (req, res) => {
       ]
     );
 
-    await db.commit();
+    await connection.commit();
+
+    connection.release();
 
     return res.status(200).json(
       successResponse("Transaksi berhasil", {
@@ -168,7 +190,9 @@ export const createTransaction = async (req, res) => {
       })
     );
   } catch (error) {
-    await db.rollback();
+    await connection.rollback(); 
+    connection.release();
+    console.error("CreateTransaction Error:", error);
     return res.status(500).json(errorResponse(500, "Internal Server Error"));
   }
 };
@@ -179,7 +203,10 @@ export const getTransactions = async (req, res) => {
 
   try {
     // Ambil user ID berdasarkan email dari token
-    const [userRows] = await db.execute("SELECT id FROM users WHERE email = ?", [userEmail]);
+    const [userRows] = await db.execute(
+      "SELECT id FROM users WHERE email = ?",
+      [userEmail]
+    );
 
     if (userRows.length === 0) {
       return res.status(404).json(errorResponse(102, "User tidak ditemukan"));
