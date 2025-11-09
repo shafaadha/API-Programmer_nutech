@@ -101,7 +101,7 @@ export const login = async (req, res) => {
   }
 
   try {
-    const [user] = await connection.execute(
+    const [user] = await db.execute(
       "SELECT*FROM users WHERE email=?",
       [email]
     );
